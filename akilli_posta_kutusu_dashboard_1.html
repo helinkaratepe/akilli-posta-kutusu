@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Akıllı Posta Kutusu</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00f5c4;
+    --accent2: #7c3aed;
+    --danger: #ff4444;
+    --warning: #ffaa00;
+    --text: #e8e8f0;
+    --text2: #8888aa;
+    --text3: #4444660;
+    --green: #00e676;
+    --red: #ff1744;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Glow orbs */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .logo-text h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-text p {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text2);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  .status-dot.offline { background: var(--danger); animation: none; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Main grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .card:hover {
+    border-color: rgba(0,245,196,0.2);
+    transform: translateY(-1px);
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,245,196,0.02) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+  }
+
+  /* Status cards */
+  .status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 160px;
+  }
+
+  .status-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+
+  .status-value {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .status-value.green { color: var(--green); }
+  .status-value.red { color: var(--red); }
+  .status-value.amber { color: var(--warning); }
+  .status-value.accent { color: var(--accent); }
+
+  .status-sub {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Kilit durumu büyük kart */
+  .lock-card {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-height: 160px;
+  }
+
+  .lock-visual {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.5s ease;
+  }
+
+  .lock-visual.locked {
+    background: rgba(255,23,68,0.1);
+    border: 2px solid rgba(255,23,68,0.3);
+    box-shadow: 0 0 30px rgba(255,23,68,0.1);
+  }
+
+  .lock-visual.unlocked {
+    background: rgba(0,230,118,0.1);
+    border: 2px solid rgba(0,230,118,0.3);
+    box-shadow: 0 0 30px rgba(0,230,118,0.1);
+  }
+
+  .lock-info h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 6px;
+  }
+
+  .lock-info p {
+    font-size: 13px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 16px;
+  }
+
+  /* Buton */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #00c49a);
+    color: #0a0a0f;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,245,196,0.3);
+  }
+
+  .btn-danger {
+    background: rgba(255,68,68,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(255,68,68,0.3);
+  }
+
+  .btn-danger:hover {
+    background: rgba(255,68,68,0.25);
+    transform: translateY(-1px);
+  }
+
+  .btn:active { transform: translateY(0); }
+
+  /* Mesafe göstergesi */
+  .distance-display {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .distance-number {
+    font-size: 52px;
+    font-weight: 800;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  .distance-unit {
+    font-size: 18px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 12px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.5s ease;
+  }
+
+  /* Log */
+  .log-card {
+    min-height: 200px;
+  }
+
+  .log-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .log-list::-webkit-scrollbar { width: 4px; }
+  .log-list::-webkit-scrollbar-track { background: var(--bg3); }
+  .log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .log-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg3);
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .log-dot.success { background: var(--green); }
+  .log-dot.warning { background: var(--warning); }
+  .log-dot.danger { background: var(--danger); }
+  .log-dot.info { background: var(--accent); }
+
+  .log-time { color: var(--text2); font-size: 11px; }
+  .log-msg { color: var(--text); flex: 1; }
+
+  /* Bildirim alanı */
+  .notification {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 14px 20px;
+    background: var(--bg3);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: 'Space Mono', monospace;
+    color: var(--accent);
+    z-index: 100;
+    transform: translateX(200%);
+    transition: transform 0.3s ease;
+    max-width: 280px;
+  }
+
+  .notification.show { transform: translateX(0); }
+
+  /* Blynk bağlantı bilgisi */
+  .blynk-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(0,245,196,0.05);
+    border: 1px solid rgba(0,245,196,0.15);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--text2);
+    margin-top: 16px;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer p {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .version {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'Space Mono', monospace;
+    padding: 4px 10px;
+    background: var(--bg3);
+    border-radius: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .lock-card { flex-direction: column; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="notification" id="notif">📦 Kargo tespit edildi!</div>
+
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📬</div>
+      <div class="logo-text">
+        <h1>Akıllı Posta Kutusu</h1>
+        <p>OSTİM TEKNİK ÜNİVERSİTESİ · 2025</p>
+      </div>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot" id="connDot"></div>
+      <span id="connText">Bağlı</span>
+    </div>
+  </header>
+
+  <!-- Üst satır: 3 durum kartı -->
+  <div class="grid">
+
+    <!-- Kargo Durumu -->
+    <div class="card status-card">
+      <div class="card-label">Kargo Durumu</div>
+      <div class="status-icon" id="kargoIcon">📭</div>
+      <div class="status-value" id="kargoValue" style="color: var(--text2)">BOŞTA</div>
+      <div class="status-sub" id="kargoSub">Kargo bekleniyor</div>
+    </div>
+
+    <!-- Kapak Durumu -->
+    <div class="card status-card">
+      <div class="card-label">Kapak Durumu</div>
+      <div class="status-icon" id="kapakIcon">🔓</div>
+      <div class="status-value" id="kapakValue" style="color: var(--green)">AÇIK</div>
+      <div class="status-sub" id="kapakSub">Teslimat için hazır</div>
+    </div>
+
+    <!-- Son Güncelleme -->
+    <div class="card status-card">
+      <div class="card-label">Son Güncelleme</div>
+      <div class="status-icon">🕐</div>
+      <div class="status-value accent" id="lastUpdate" style="font-size:16px">--:--:--</div>
+      <div class="status-sub">Her 2 sn güncellenir</div>
+    </div>
+
+  </div>
+
+  <!-- Orta satır -->
+  <div class="grid-2">
+
+    <!-- Kilit Kontrolü -->
+    <div class="card">
+      <div class="card-label">Kilit Kontrolü</div>
+      <div class="lock-card">
+        <div class="lock-visual locked" id="lockVisual">🔒</div>
+        <div class="lock-info">
+          <h2 id="lockTitle">KİLİTLİ</h2>
+          <p id="lockDesc">Kutu güvende, yetkisiz erişim engellendi</p>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="kilidiAc()">🔓 Kilidi Aç</button>
+            <button class="btn btn-danger" onclick="kilitle()">🔒 Kilitle</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mesafe Sensörü -->
+    <div class="card">
+      <div class="card-label">HC-SR04 Mesafe</div>
+      <div class="distance-display">
+        <div class="distance-number" id="mesafeNum">--</div>
+        <div class="distance-unit">cm</div>
+      </div>
+      <div class="status-sub" id="mesafeDurum">Sensör okunuyor...</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="mesafeBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Olay Günlüğü -->
+  <div class="card log-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div class="card-label" style="margin-bottom:0">Olay Günlüğü</div>
+      <button class="btn" style="background:var(--bg3); color:var(--text2); font-size:12px; padding:6px 12px;" onclick="logTemizle()">Temizle</button>
+    </div>
+    <ul class="log-list" id="logList">
+      <li class="log-item">
+        <span class="log-dot info"></span>
+        <span class="log-msg">Sistem başlatıldı</span>
+        <span class="log-time" id="startTime"></span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Blynk bağlantı bilgisi -->
+  <div class="blynk-info">
+    ⚡ Bu arayüz Blynk IoT ile senkronize çalışır. Gerçek veriler için ESP32'yi WiFi'ye bağlayın ve Blynk uygulamasını açın.
+  </div>
+
+  <footer>
+    <p>TÜBİTAK 2209-A · Akıllı Posta Kutusu</p>
+    <span class="version">v1.0.0</span>
+  </footer>
+
+</div>
+
+<script>
+  // Başlangıç zamanı
+  document.getElementById('startTime').textContent = now();
+
+  function now() {
+    return new Date().toLocaleTimeString('tr-TR');
+  }
+
+  function log(msg, type = 'info') {
+    const list = document.getElementById('logList');
+    const li = document.createElement('li');
+    li.className = 'log-item';
+    li.innerHTML = `
+      <span class="log-dot ${type}"></span>
+      <span class="log-msg">${msg}</span>
+      <span class="log-time">${now()}</span>
+    `;
+    list.insertBefore(li, list.firstChild);
+    if (list.children.length > 20) list.removeChild(list.lastChild);
+  }
+
+  function showNotif(msg) {
+    const n = document.getElementById('notif');
+    n.textContent = msg;
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 3500);
+  }
+
+  // Kilit durumu
+  let kilitli = true;
+
+  function kilidiAc() {
+    kilitli = false;
+    document.getElementById('lockVisual').className = 'lock-visual unlocked';
+    document.getElementById('lockVisual').textContent = '🔓';
+    document.getElementById('lockTitle').textContent = 'AÇIK';
+    document.getElementById('lockDesc').textContent = 'Kutu açık, kargo alınabilir';
+    log('Kilit uzaktan açıldı', 'warning');
+    showNotif('🔓 Kilit açıldı!');
+  }
+
+  function kilitle() {
+    kilitli = true;
+    document.getElementById('lockVisual').className = 'lock-visual locked';
+    document.getElementById('lockVisual').textContent = '🔒';
+    document.getElementById('lockTitle').textContent = 'KİLİTLİ';
+    document.getElementById('lockDesc').textContent = 'Kutu güvende, yetkisiz erişim engellendi';
+    log('Kilit aktif edildi', 'success');
+    showNotif('🔒 Kilit aktif!');
+  }
+
+  function logTemizle() {
+    const list = document.getElementById('logList');
+    list.innerHTML = `<li class="log-item">
+      <span class="log-dot info"></span>
+      <span class="log-msg">Günlük temizlendi</span>
+      <span class="log-time">${now()}</span>
+    </li>`;
+  }
+
+  // Demo: sensör verisi simülasyonu
+  function updateSensors() {
+    const mesafe = Math.floor(Math.random() * 60) + 5;
+    document.getElementById('mesafeNum').textContent = mesafe;
+    document.getElementById('lastUpdate').textContent = now();
+
+    const pct = Math.min(100, (60 - mesafe) / 60 * 100);
+    document.getElementById('mesafeBar').style.width = pct + '%';
+
+    if (mesafe < 15) {
+      document.getElementById('mesafeDurum').textContent = '⚠️ Kargo tespit edildi!';
+      document.getElementById('kargoIcon').textContent = '📦';
+      document.getElementById('kargoValue').textContent = 'KARGO VAR';
+      document.getElementById('kargoValue').style.color = 'var(--green)';
+      document.getElementById('kargoSub').textContent = `${mesafe} cm mesafede nesne`;
+      if (!kilitli) { kilitle(); }
+      log(`Kargo tespit edildi (${mesafe} cm)`, 'success');
+      showNotif('📦 Kargo teslim edildi!');
+    } else {
+      document.getElementById('mesafeDurum').textContent = 'Normal mesafe, kargo yok';
+      document.getElementById('kargoIcon').textContent = '📭';
+      document.getElementById('kargoValue').textContent = 'BOŞTA';
+      document.getElementById('kargoValue').style.color = 'var(--text2)';
+      document.getElementById('kargoSub').textContent = 'Kargo bekleniyor';
+    }
+  }
+
+  // Her 3 saniyede demo güncelle
+  setInterval(updateSensors, 3000);
+  updateSensors();
+</script>
+</body>
+</html>
